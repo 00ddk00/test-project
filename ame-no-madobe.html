@@ -1,0 +1,663 @@
+<title>雨の窓辺</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Zen+Old+Mincho:wght@500;700&family=Zen+Kaku+Gothic+New:wght@400;500&family=DM+Mono:wght@400&display=swap">
+<style>
+/* Layout: one manga panel, full width, with a transport bar and a three-beat storyboard under it. Single paper-and-ink look by choice. */
+:root {
+  --paper: #f2f1ec;
+  --paper-deep: #e4e2db;
+  --ink: #141414;
+  --ink-soft: #55534d;
+  --rule: #b9b6ad;
+  --display: "Zen Old Mincho", "Hiragino Mincho ProN", "Yu Mincho", serif;
+  --body: "Zen Kaku Gothic New", "Hiragino Sans", "Yu Gothic", system-ui, sans-serif;
+  --mono: "DM Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
+  color-scheme: light;
+}
+html { background: var(--paper); }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--body);
+  font-size: 15px;
+  line-height: 1.7;
+  padding-inline: 16px;
+  padding-block: 28px 48px;
+}
+.wrap { max-width: 1080px; margin: 0 auto; display: grid; gap: 20px; }
+header { display: grid; gap: 6px; }
+.eyebrow {
+  font-family: var(--mono);
+  font-size: 12px;
+  letter-spacing: 0.08em;
+  color: var(--ink-soft);
+}
+h1 {
+  font-family: var(--display);
+  font-weight: 700;
+  font-size: clamp(30px, 5vw, 46px);
+  line-height: 1.15;
+  margin: 0;
+  letter-spacing: 0.06em;
+  text-wrap: balance;
+}
+.lede { margin: 0; max-width: 62ch; color: var(--ink-soft); }
+
+.panel {
+  position: relative;
+  border: 3px solid var(--ink);
+  outline: 1px solid var(--ink);
+  outline-offset: 4px;
+  background: var(--paper);
+  line-height: 0;
+}
+canvas {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  aspect-ratio: 16 / 9;
+  background: var(--paper);
+}
+
+.transport {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px 16px;
+  margin-top: 6px;
+}
+button {
+  font: inherit;
+  font-size: 14px;
+  color: var(--paper);
+  background: var(--ink);
+  border: 0;
+  padding: 8px 16px;
+  cursor: pointer;
+  min-width: 96px;
+  letter-spacing: 0.06em;
+}
+button.ghost { background: transparent; color: var(--ink); border: 1px solid var(--ink); min-width: 0; }
+button:focus-visible, input:focus-visible { outline: 2px solid var(--ink); outline-offset: 3px; }
+.scrub { flex: 1 1 240px; min-width: 0; display: flex; align-items: center; }
+input[type="range"] { width: 100%; accent-color: var(--ink); }
+.tc {
+  font-family: var(--mono);
+  font-variant-numeric: tabular-nums;
+  font-size: 13px;
+  color: var(--ink);
+  white-space: nowrap;
+}
+
+.beats {
+  list-style: none;
+  margin: 8px 0 0;
+  padding: 0;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  border-top: 1px solid var(--ink);
+}
+.beats li {
+  padding: 12px 14px 4px 0;
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+  border-top: 4px solid transparent;
+  margin-top: -1px;
+  transition: border-color .2s;
+}
+.beats li + li { padding-left: 14px; border-left: 1px solid var(--rule); }
+.beats li.on { border-top-color: var(--ink); }
+.beats .time { font-family: var(--mono); font-size: 12px; color: var(--ink-soft); font-variant-numeric: tabular-nums; }
+.beats .name { font-family: var(--display); font-weight: 700; font-size: 17px; }
+.beats .desc { font-size: 13px; color: var(--ink-soft); }
+.note { font-size: 12px; color: var(--ink-soft); margin: 4px 0 0; }
+
+@media (max-width: 640px) {
+  .beats { grid-template-columns: minmax(0, 1fr); }
+  .beats li + li { padding-left: 0; border-left: 0; border-top: 1px solid var(--rule); }
+  .beats li.on { border-top: 4px solid var(--ink); }
+}
+</style>
+
+<div class="wrap">
+  <header>
+    <div class="eyebrow">MONOCHROME LINE ART · 15秒ループ · 24fps · ワンカット</div>
+    <h1>雨の窓辺</h1>
+    <p class="lede">夕暮れの雨の窓辺に立つ浴衣の女性。後ろ姿から振り返り、微笑んで去っていく。最後に残るのは、揺れるカーテンと空の窓だけです。</p>
+  </header>
+
+  <div>
+    <div class="panel">
+      <canvas id="cv" width="1600" height="900" aria-label="漫画風の白黒線画アニメーション。雨の窓辺に立つ浴衣の女性が振り返り、微笑んで画面の外へ歩き去る。"></canvas>
+    </div>
+    <div class="transport">
+      <button id="play" type="button">一時停止</button>
+      <div class="scrub"><input id="scrub" type="range" min="0" max="15" step="0.0416667" value="1" aria-label="再生位置"></div>
+      <span class="tc" id="tc">00:00 / 15:00</span>
+      <button id="fs" type="button" class="ghost">全画面</button>
+    </div>
+  </div>
+
+  <ol class="beats" id="beats">
+    <li data-a="0" data-b="5">
+      <span class="time">0–5秒</span>
+      <span class="name">雨の窓辺、後ろ姿</span>
+      <span class="desc">夕暮れの雨。うなじと、風に揺れる透ける浴衣。</span>
+    </li>
+    <li data-a="5" data-b="10">
+      <span class="time">5–10秒</span>
+      <span class="name">振り返り</span>
+      <span class="desc">カメラが顔に寄る。ゆっくり振り返る視線と、唇に触れる指先。</span>
+    </li>
+    <li data-a="10" data-b="15">
+      <span class="time">10–15秒</span>
+      <span class="name">残された窓</span>
+      <span class="desc">微笑んで歩き去る。黒髪が画面を横切り、カーテンだけが揺れる。</span>
+    </li>
+  </ol>
+  <p class="note">Canvasのコードで描いた線画アニメーションです。15秒で途切れずにループします。</p>
+</div>
+
+<script>
+(() => {
+  const TAU = Math.PI * 2, DUR = 15, FPS = 24;
+  const INK = '#141414', PAPER = '#f2f1ec';
+  const PAPER_A = a => `rgba(242,241,236,${a})`;
+  const INK_A = a => `rgba(20,20,20,${a})`;
+  const clamp = (v, a = 0, b = 1) => Math.min(b, Math.max(a, v));
+  const ease = v => { v = clamp(v); return v * v * (3 - 2 * v); };
+  const ss = (a, b, v) => ease((v - a) / (b - a));
+  const lerp = (a, b, u) => a + (b - a) * u;
+  const hash = n => { const s = Math.sin(n) * 43758.5453123; return s - Math.floor(s); };
+  function rng(seed) { return () => { seed |= 0; seed = seed + 0x6D2B79F5 | 0; let t = Math.imul(seed ^ seed >>> 15, 1 | seed); t = t + Math.imul(t ^ t >>> 7, 61 | t) ^ t; return ((t ^ t >>> 14) >>> 0) / 4294967296; }; }
+
+  const cv = document.getElementById('cv');
+  const ctx = cv.getContext('2d');
+
+  // ---------- line boil (hand-drawn jitter, 12 drawings per second) ----------
+  let jc = 0, boil = 0, JAMP = 0.6;
+  const J = (x, y) => { jc++; return [x + (hash(jc * 12.9898 + boil * 78.233) - 0.5) * JAMP * 2, y + (hash(jc * 39.346 + boil * 11.135) - 0.5) * JAMP * 2]; };
+  const mid = (p, q) => [(p[0] + q[0]) / 2, (p[1] + q[1]) / 2];
+  function curve(pts, closed) {
+    const n = pts.length;
+    if (closed) {
+      const m0 = mid(pts[n - 1], pts[0]);
+      ctx.moveTo(m0[0], m0[1]);
+      for (let i = 0; i < n; i++) { const p = pts[i], m = mid(p, pts[(i + 1) % n]); ctx.quadraticCurveTo(p[0], p[1], m[0], m[1]); }
+      ctx.closePath();
+    } else {
+      ctx.moveTo(pts[0][0], pts[0][1]);
+      for (let i = 1; i < n - 1; i++) { const m = mid(pts[i], pts[i + 1]); ctx.quadraticCurveTo(pts[i][0], pts[i][1], m[0], m[1]); }
+      ctx.lineTo(pts[n - 1][0], pts[n - 1][1]);
+    }
+  }
+  function line(pts, w, color = INK, alpha = 1) {
+    ctx.save(); ctx.globalAlpha *= alpha; ctx.beginPath(); curve(pts.map(p => J(p[0], p[1])), false);
+    ctx.lineWidth = w; ctx.strokeStyle = color; ctx.lineCap = 'round'; ctx.lineJoin = 'round'; ctx.stroke(); ctx.restore();
+  }
+  function shape(pts, fill, stroke, w, strokeAlpha = 1) {
+    ctx.beginPath(); curve(pts.map(p => J(p[0], p[1])), true);
+    if (fill) { ctx.fillStyle = fill; ctx.fill(); }
+    if (stroke && strokeAlpha > 0) { ctx.save(); ctx.globalAlpha *= strokeAlpha; ctx.lineWidth = w; ctx.strokeStyle = stroke; ctx.lineJoin = 'round'; ctx.stroke(); ctx.restore(); }
+  }
+
+  // ---------- static background, drawn once at 2x ----------
+  const bg = document.createElement('canvas');
+  bg.width = 3200; bg.height = 1800;
+  (function drawBackground() {
+    const g = bg.getContext('2d');
+    const R = rng(11);
+    g.scale(2, 2);
+    g.fillStyle = PAPER; g.fillRect(0, 0, 1600, 900);
+    g.lineCap = 'round'; g.lineJoin = 'round';
+
+    // dim room: halftone gets denser away from the window
+    g.fillStyle = INK;
+    for (let y = 4; y < 900; y += 8) {
+      const off = (Math.round(y / 8) % 2) * 4;
+      for (let x = 4 + off; x < 1600; x += 8) {
+        if (x > 486 && x < 1114 && y > 126 && y < 752) continue;
+        const d = Math.hypot((x - 800) / 820, (y - 430) / 540);
+        const r = clamp((d - 0.5) * 3.0, 0, 2.6);
+        if (r < 0.25) continue;
+        g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+      }
+    }
+    // ceiling beam and pillars
+    g.fillStyle = PAPER; g.strokeStyle = INK; g.lineWidth = 2;
+    g.fillRect(0, 50, 1600, 24); g.beginPath(); g.moveTo(0, 50); g.lineTo(1600, 50); g.moveTo(0, 74); g.lineTo(1600, 74); g.stroke();
+    g.lineWidth = 0.6; g.globalAlpha = 0.5;
+    for (let i = 0; i < 5; i++) { g.beginPath(); const y = 55 + i * 4; g.moveTo(0, y); for (let x = 0; x <= 1600; x += 80) g.lineTo(x, y + Math.sin(x * 0.01 + i) * 1.2); g.stroke(); }
+    g.globalAlpha = 1;
+    for (const px of [236, 1338]) {
+      g.fillStyle = PAPER; g.fillRect(px, 74, 26, 756);
+      g.lineWidth = 1.8; g.strokeRect(px, 74, 26, 756);
+      g.lineWidth = 0.5; g.globalAlpha = 0.45;
+      for (let i = 1; i < 4; i++) { g.beginPath(); g.moveTo(px + i * 6.5, 80); g.bezierCurveTo(px + i * 6.5 + 2, 300, px + i * 6.5 - 2, 600, px + i * 6.5, 826); g.stroke(); }
+      g.globalAlpha = 1;
+    }
+
+    // floor: tatami
+    g.fillStyle = PAPER; g.fillRect(0, 830, 1600, 70);
+    g.lineWidth = 2; g.beginPath(); g.moveTo(0, 830); g.lineTo(1600, 830); g.stroke();
+    g.lineWidth = 0.4; g.globalAlpha = 0.35;
+    for (let y = 835; y < 900; y += 3.2) { g.beginPath(); g.moveTo(0, y); g.lineTo(1600, y); g.stroke(); }
+    g.globalAlpha = 1; g.fillStyle = INK;
+    g.fillRect(0, 878, 1600, 7);
+    g.lineWidth = 1;
+    for (let xi = -600; xi <= 2200; xi += 340) { g.beginPath(); g.moveTo(800 + (xi - 800) * 0.6, 830); g.lineTo(xi, 900); g.stroke(); }
+
+    // window: sky at dusk in halftone, darker toward the top
+    const clouds = [[620, 250, 120, 22], [900, 210, 150, 26], [740, 330, 90, 14], [1010, 300, 70, 12], [560, 180, 60, 10]];
+    g.save(); g.beginPath(); g.rect(508, 148, 584, 564); g.clip();
+    g.fillStyle = PAPER; g.fillRect(508, 148, 584, 564);
+    g.fillStyle = INK;
+    for (let y = 150; y < 712; y += 7) {
+      const off = (Math.round(y / 7) % 2) * 3.5;
+      for (let x = 510 + off; x < 1092; x += 7) {
+        let inCloud = false;
+        for (const c of clouds) if (((x - c[0]) / c[2]) ** 2 + ((y - c[1]) / c[3]) ** 2 < 1) inCloud = true;
+        if (inCloud) continue;
+        const v = (y - 148) / 420;
+        const r = v > 1 ? 0.4 : 3.2 * Math.pow(1 - v, 1.15) + 0.4;
+        g.beginPath(); g.arc(x, y, r, 0, TAU); g.fill();
+      }
+    }
+    g.strokeStyle = INK; g.lineWidth = 0.8;
+    for (const c of clouds) { g.beginPath(); g.ellipse(c[0], c[1], c[2], c[3], 0, Math.PI * 1.05, Math.PI * 1.95); g.stroke(); }
+    // power lines
+    g.lineWidth = 0.8;
+    for (let i = 0; i < 3; i++) { g.beginPath(); g.moveTo(1030, 398 + i * 9); g.quadraticCurveTo(760, 470 + i * 12, 500, 430 + i * 14); g.stroke(); }
+    // town silhouette
+    g.fillStyle = INK; g.beginPath(); g.moveTo(508, 712);
+    let x = 508; const lit = [];
+    while (x < 1092) {
+      const w = 34 + R() * 52, top = 560 + R() * 80, kind = R();
+      if (kind < 0.45) { g.lineTo(x, top + 14); g.lineTo(x + w / 2, top - 6); g.lineTo(x + w, top + 14); }
+      else if (kind < 0.75) { g.lineTo(x, top); g.lineTo(x + w * 0.2, top); g.lineTo(x + w * 0.2, top - 14); g.lineTo(x + w * 0.38, top - 14); g.lineTo(x + w * 0.38, top); g.lineTo(x + w, top); }
+      else { g.lineTo(x, top + 22); g.lineTo(x + w, top + 22); }
+      for (let k = 0; k < 3; k++) if (R() < 0.45) lit.push([x + 6 + R() * (w - 16), top + 24 + R() * 60]);
+      x += w;
+    }
+    g.lineTo(1092, 712); g.closePath(); g.fill();
+    g.fillStyle = PAPER;
+    for (const [lx, ly] of lit) g.fillRect(lx, ly, 6, 8);
+    // utility pole
+    g.fillStyle = INK; g.fillRect(1006, 372, 7, 340);
+    g.fillRect(984, 394, 50, 4); g.fillRect(990, 410, 38, 3);
+    g.restore();
+
+    // window frame, sliding stiles, sill
+    g.strokeStyle = INK;
+    g.fillStyle = PAPER;
+    g.beginPath(); g.rect(492, 132, 616, 596); g.rect(508, 148, 584, 564); g.fill('evenodd');
+    g.lineWidth = 2.6; g.strokeRect(492, 132, 616, 596);
+    g.lineWidth = 1.4; g.strokeRect(508, 148, 584, 564);
+    g.lineWidth = 0.5; g.globalAlpha = 0.5;
+    for (let i = 1; i < 3; i++) { g.strokeRect(492 + i * 5, 132 + i * 5, 616 - i * 10, 596 - i * 10); }
+    g.globalAlpha = 1;
+    g.fillStyle = PAPER; g.fillRect(793, 148, 14, 564);
+    g.lineWidth = 1.4; g.strokeRect(793, 148, 14, 564);
+    g.beginPath(); g.moveTo(800, 148); g.lineTo(800, 712); g.lineWidth = 0.6; g.stroke();
+    g.fillStyle = PAPER; g.fillRect(476, 728, 648, 18);
+    g.lineWidth = 2; g.strokeRect(476, 728, 648, 18);
+    g.lineWidth = 1; g.globalAlpha = 0.5; g.beginPath(); g.moveTo(482, 752); g.lineTo(1118, 752); g.stroke(); g.globalAlpha = 1;
+    // curtain rod
+    g.lineWidth = 2.4; g.beginPath(); g.moveTo(456, 119); g.lineTo(1144, 119); g.stroke();
+    g.fillStyle = INK; g.beginPath(); g.arc(452, 119, 5, 0, TAU); g.arc(1148, 119, 5, 0, TAU); g.fill();
+  })();
+
+  // paper grain, shifted per drawing
+  const grain = document.createElement('canvas');
+  grain.width = grain.height = 180;
+  (function () {
+    const g = grain.getContext('2d'), R = rng(5);
+    for (let i = 0; i < 2600; i++) { g.fillStyle = R() < 0.5 ? INK : '#ffffff'; g.globalAlpha = 0.25 + R() * 0.5; g.fillRect(R() * 180, R() * 180, R() < 0.9 ? 1 : 2, 1); }
+  })();
+  const grainPat = ctx.createPattern(grain, 'repeat');
+
+  // ---------- rain (seamless over 15 s: every speed is a whole number of cycles) ----------
+  const R2 = rng(23);
+  const streaks = Array.from({ length: 170 }, () => [R2(), R2(), R2()]);
+  const drops = Array.from({ length: 44 }, () => [R2(), R2(), 1 + Math.floor(R2() * 3), 14 + R2() * 34]);
+  function drawRain(t) {
+    ctx.save();
+    ctx.beginPath(); ctx.rect(508, 148, 285, 564); ctx.rect(807, 148, 285, 564); ctx.clip();
+    ctx.globalCompositeOperation = 'difference';
+    ctx.strokeStyle = '#ffffff'; ctx.lineCap = 'round';
+    ctx.lineWidth = 0.7; ctx.globalAlpha = 0.55;
+    ctx.beginPath();
+    for (const [a, b] of streaks) {
+      const y = 128 + ((b * 600 + t * 600 * 40 / DUR) % 600);
+      const x = 500 + a * 610 + (y - 148) * 0.1;
+      ctx.moveTo(x, y); ctx.lineTo(x + 3, y + 28);
+    }
+    ctx.stroke();
+    ctx.globalAlpha = 0.8; ctx.lineWidth = 0.8;
+    for (const [a, b, k, len] of drops) {
+      const y = 148 + ((b * 600 + t * 600 * k / DUR) % 600);
+      const x = 514 + a * 572 + Math.sin(y * 0.05 + a * 9) * 1.6;
+      ctx.beginPath(); ctx.moveTo(x, y - len); ctx.quadraticCurveTo(x + 1.5, y - len / 2, x, y - 2.6); ctx.stroke();
+      ctx.beginPath(); ctx.arc(x, y, 2.4, 0, TAU); ctx.stroke();
+    }
+    ctx.restore();
+  }
+
+  // ---------- curtains ----------
+  function panel(t, xFixed, w0, dir, bill, lw) {
+    const top = 119, hem = 764 + bill * 150;
+    const X = (u, y) => {
+      const f = clamp((y - top) / (hem - top));
+      const amb = Math.pow(f, 1.3) * (9 * Math.sin(TAU * t / 5 + u * 2) + 4 * Math.sin(TAU * t / 3 + 1 + u * 3));
+      const width = w0 + bill * 600 * Math.sin(Math.PI * 0.5 * Math.min(1, f * 1.7)) + bill * 40 * Math.sin(Math.PI * f) * Math.sin(t * 5);
+      return xFixed + dir * u * width + u * amb;
+    };
+    const H = u => hem + 5 * Math.sin(u * 9 + TAU * t / 3) + bill * 24 * Math.sin(u * 4 + t * 6);
+    const pts = [];
+    for (let i = 0; i <= 20; i++) { const y = lerp(top, H(0), i / 20); pts.push([X(0, y), y]); }
+    for (let i = 1; i <= 12; i++) { const u = i / 12; pts.push([X(u, H(u)), H(u)]); }
+    for (let i = 20; i >= 0; i--) { const y = lerp(top, H(1), i / 20); pts.push([X(1, y), y]); }
+    ctx.beginPath(); ctx.moveTo(pts[0][0], pts[0][1]);
+    for (const p of pts) { const q = J(p[0], p[1]); ctx.lineTo(q[0], q[1]); }
+    ctx.closePath();
+    ctx.fillStyle = PAPER_A(0.86 + bill * 0.14); ctx.fill();
+    ctx.lineWidth = lw; ctx.strokeStyle = INK; ctx.lineJoin = 'round'; ctx.stroke();
+    for (const u of [0.13, 0.27, 0.42, 0.56, 0.7, 0.85]) {
+      const fold = [];
+      for (let i = 0; i <= 10; i++) { const y = lerp(top + 6, H(u) - 8, i / 10); fold.push([X(u + Math.sin(i * 0.8 + u * 7) * 0.012, y), y]); }
+      line(fold, lw * 0.55, INK, 0.75);
+    }
+    ctx.fillStyle = INK;
+    for (let u = 0; u <= 1.001; u += 0.125) { ctx.beginPath(); ctx.arc(X(u, top), top + 1, 2.6, 0, TAU); ctx.fill(); }
+  }
+  function billow(t) { return t > 14.2 ? ss(14.2, 15, t) : 1 - ss(0, 0.85, t); }
+
+  // ---------- the woman ----------
+  const ELL = [];
+  const FACE = [[-30, -10], [-34, 10], [-30, 30], [-22, 46], [-8, 52], [8, 44], [28, 20], [32, -6], [26, -28], [8, -38], [-12, -36], [-26, -26]];
+  for (const [x, y] of FACE) { const a = Math.atan2(y, x); ELL.push([Math.cos(a) * 30, Math.sin(a) * 36]); }
+  const HAIR_B = [[-31, -4], [-30, 12], [-20, 24], [-8, 30], [0, 27], [8, 30], [20, 24], [30, 12], [32, -8], [26, -30], [0, -42], [-24, -32]];
+  const HAIR_T = [[-29, -18], [-14, -24], [0, -14], [6, 4], [12, 22], [22, 30], [32, 14], [35, -10], [26, -32], [6, -44], [-16, -42], [-29, -32]];
+  const LSIDE = [[-13, 62], [-40, 72], [-70, 88], [-90, 110], [-97, 160], [-100, 230], [-101, 300], [-96, 330], [-82, 342], [-66, 338], [-60, 318], [-58, 380], [-60, 450], [-63, 520], [-66, 548]];
+  const FLOWERS = [[-82, 180], [-74, 290], [-30, 330], [32, 400], [-40, 470], [44, 505], [82, 205], [86, 300], [12, 330], [-14, 430], [24, 170], [-28, 165]];
+
+  function drawWoman(t, z) {
+    const turn = ss(5.4, 8.0, t);
+    const hand = ss(7.4, 9.0, t) * (1 - ss(10.0, 10.7, t));
+    const smile = ss(9.8, 10.6, t);
+    const walk = ss(10.7, 12.0, t);
+    const release = ss(10.4, 11.4, t);
+    const lid = 0.45 + 0.55 * ss(7.0, 8.2, t) - 0.28 * ss(8.6, 9.4, t) + 0.1 * smile;
+    const lw = 1.5 / Math.sqrt(z);
+
+    const sw = y => y < 60 ? 0 : Math.pow((y - 60) / 490, 1.4) * (4.5 * Math.sin(TAU * t / 5 + y * 0.01) + 2 * Math.sin(TAU * t / 3 + y * 0.02 + 1)) - walk * 30 * Math.pow((y - 60) / 490, 1.6);
+    const S = ([x, y]) => [x + sw(y), y];
+
+    ctx.save();
+    ctx.translate(760 + walk * 340, 300 + Math.sin(walk * Math.PI * 4) * 4 * walk);
+    const sc = 1 + walk * 0.8; ctx.scale(sc, sc);
+
+    // floor shadow
+    ctx.fillStyle = INK_A(0.12); ctx.beginPath(); ctx.ellipse(4, 566, 92, 9, 0, 0, TAU); ctx.fill();
+    // feet and geta
+    for (const fx of [-20, 18]) {
+      line([[fx - 3, 546], [fx - 3, 558]], lw * 0.8);
+      line([[fx + 4, 546], [fx + 4, 558]], lw * 0.8);
+      shape([[fx - 12, 559], [fx + 11, 559], [fx + 11, 566], [fx - 12, 566]], PAPER, INK, lw);
+    }
+
+    // yukata body, sheer: the room shows through
+    const L = LSIDE.map(S);
+    const body = [...L, S([-30, 552]), S([0, 550]), S([30, 552]), ...LSIDE.slice().reverse().map(([x, y]) => S([-x, y]))];
+    shape(body, PAPER_A(0.8), INK, lw * 1.1);
+    // arms seen through the sleeves
+    line([[-46, 82], [-62, 150], [-66, 230], [-58, 300]].map(S), lw * 0.7, INK, 0.25);
+    line([[46, 82], [62, 150], [66, 230], [58, 300]].map(S), lw * 0.7, INK, 0.25);
+    line([[-40, 96], [-50, 200], [-48, 300]].map(S), lw * 0.6, INK, 0.2);
+    line([[40, 96], [50, 200], [48, 300]].map(S), lw * 0.6, INK, 0.2);
+    // inner sleeve edges, drape, back seam
+    line([[-64, 166], [-62, 250], [-64, 334]].map(S), lw * 0.8);
+    line([[64, 166], [62, 250], [64, 334]].map(S), lw * 0.8);
+    line([[-30, 300], [-33, 420], [-36, 545]].map(S), lw * 0.5, INK, 0.6);
+    line([[28, 300], [31, 420], [34, 545]].map(S), lw * 0.5, INK, 0.6);
+    line([[-84, 140], [-88, 240], [-90, 320]].map(S), lw * 0.5, INK, 0.5);
+    line([[84, 140], [88, 240], [90, 320]].map(S), lw * 0.5, INK, 0.5);
+    line([[0, 126], [0, 222]].map(S), lw * 0.6, INK, 0.5);
+    line([[0, 282], [1, 420], [0, 548]].map(S), lw * 0.6, INK, 0.5);
+    // nadeshiko print
+    ctx.save(); ctx.globalAlpha = 0.6; ctx.strokeStyle = INK; ctx.lineWidth = lw * 0.55;
+    for (const f of FLOWERS) {
+      const [fx, fy] = S(f);
+      for (let k = 0; k < 5; k++) { const a = k * TAU / 5 + 0.3; ctx.beginPath(); ctx.arc(fx + Math.cos(a) * 3.6, fy + Math.sin(a) * 3.6, 2.6, 0, TAU); ctx.stroke(); }
+      ctx.beginPath(); ctx.moveTo(fx + 5, fy + 5); ctx.quadraticCurveTo(fx + 12, fy + 8, fx + 10, fy + 15); ctx.stroke();
+    }
+    ctx.restore();
+
+    // obi and butterfly bow
+    shape([[-60, 222], [60, 222], [60, 282], [-60, 282]].map(S), INK, INK, lw);
+    line([[-58, 252], [58, 252]].map(S), lw * 0.7, PAPER, 0.9);
+    const bs = 3 * Math.sin(TAU * t / 5);
+    shape([[-6, 238], [-48 + bs, 210], [-60 + bs, 236], [-48 + bs, 264], [-6, 256]].map(S), INK, PAPER, lw * 0.7, 0.9);
+    shape([[6, 238], [48 + bs, 210], [60 + bs, 236], [48 + bs, 264], [6, 256]].map(S), INK, PAPER, lw * 0.7, 0.9);
+    shape([[-14, 256], [-4, 258], [-8 + bs * 2, 360], [-20 + bs * 2, 356]].map(S), INK, PAPER, lw * 0.6, 0.8);
+    shape([[4, 258], [14, 256], [22 + bs * 2, 338], [10 + bs * 2, 342]].map(S), INK, PAPER, lw * 0.6, 0.8);
+    shape([[-8, 236], [8, 236], [8, 262], [-8, 262]].map(S), INK, PAPER, lw * 0.8);
+
+    // neck and the low back collar
+    shape([[-12, 22], [-13, 60], [-28, 74], [0, 112], [28, 74], [13, 60], [12, 22]], PAPER, null, 0);
+    line([[-11, 24], [-13, 50], [-17, 64], [-30, 74]], lw * 0.9);
+    line([[11, 24], [13, 50], [17, 64], [30, 74]], lw * 0.9);
+    line([[-2, 62], [0, 66], [2, 62]], lw * 0.5, INK, 0.5);
+    shape([[-36, 78], [-18, 100], [0, 124], [18, 100], [36, 78], [27, 74], [14, 92], [0, 110], [-14, 92], [-27, 74]], PAPER, INK, lw);
+
+    // head: skin, then hair morphing from back view to the turned face
+    const skin = ELL.map((p, i) => [lerp(p[0], FACE[i][0], turn), lerp(p[1], FACE[i][1], turn)]);
+    shape(skin, PAPER, INK, lw * 1.1, turn);
+    const hair = HAIR_B.map((p, i) => [lerp(p[0], HAIR_T[i][0], turn), lerp(p[1], HAIR_T[i][1], turn)]);
+    shape(hair, INK, INK, lw);
+    // sheen
+    const hx = turn * 10;
+    line([[-20 + hx, -24], [-4 + hx, -33], [14 + hx, -30]], lw * 1.1, PAPER, 0.85);
+    line([[-14 + hx, -18], [0 + hx, -24]], lw * 0.6, PAPER, 0.7);
+    // fine hairs at the nape
+    for (const nx of [-7, -3, 2, 6]) line([[nx, 27], [nx + 0.5, 32]], lw * 0.4, INK, 1 - turn * 0.6);
+    // bun and kanzashi
+    const bx = lerp(6, 22, turn), by = lerp(-34, -30, turn), br = 17 * (1 - release);
+    if (br > 0.5) {
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(bx, by, br, 0, TAU); ctx.fill();
+      ctx.save(); ctx.strokeStyle = PAPER; ctx.lineWidth = lw * 0.9; ctx.globalAlpha = 0.85;
+      ctx.beginPath(); ctx.arc(bx, by, br * 0.62, -2.5, -1.3); ctx.stroke(); ctx.restore();
+      const sway = 2.5 * Math.sin(TAU * t / 3);
+      line([[bx - 4, by + 4], [bx + 22, by - 18]], lw * 1.1);
+      line([[bx + 18, by - 14], [bx + 18 + sway, by - 2]], lw * 0.5);
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.arc(bx + 18 + sway, by, 2.4, 0, TAU); ctx.fill();
+    }
+
+    // face
+    const fa = ss(0.45, 1, turn);
+    if (fa > 0) {
+      ctx.save(); ctx.globalAlpha = fa;
+      // ear
+      line([[4, -5], [11, -4], [11, 5], [6, 9]], lw * 0.8);
+      // brow
+      line([[-28, -11], [-19, -14.5], [-9, -12]], lw * 0.8);
+      // eye
+      const eyeTop = -1 - 7 * lid;
+      ctx.save();
+      ctx.beginPath(); ctx.moveTo(-27, -1); ctx.quadraticCurveTo(-18, eyeTop, -8, -3); ctx.quadraticCurveTo(-17, 4.5, -27, -1); ctx.closePath();
+      ctx.fillStyle = PAPER; ctx.fill(); ctx.clip();
+      ctx.fillStyle = INK; ctx.beginPath(); ctx.ellipse(-16.5, -0.5, 4.6, 5.2, 0, 0, TAU); ctx.fill();
+      ctx.fillStyle = PAPER; ctx.beginPath(); ctx.arc(-14.8, -2.4, 1.3, 0, TAU); ctx.fill();
+      ctx.restore();
+      ctx.beginPath(); ctx.moveTo(-27.5, -1); ctx.quadraticCurveTo(-18, eyeTop - 0.6, -7.5, -3.2);
+      ctx.lineWidth = lw * 2.1; ctx.strokeStyle = INK; ctx.lineCap = 'round'; ctx.stroke();
+      line([[-8, -3], [-4, -6.5]], lw * 1.1);
+      line([[-9.5, -4.5], [-6.5, -9]], lw * 0.9);
+      line([[-24, 2.2], [-17, 4], [-10, 1]], lw * 0.5, INK, 0.8);
+      // far eye, mostly behind the nose bridge
+      line([[-37, -2], [-34, -3.4], [-31.5, -3]], lw * 1.4);
+      // nose
+      line([[-31, 8], [-34.5, 15], [-31, 17]], lw * 0.8);
+      // lips
+      const up = smile * 2.2;
+      line([[-32, 30 - up * 0.7], [-26, 31.4], [-20, 30.2 - up]], lw * 1.1);
+      line([[-31, 28.6], [-28, 27.6], [-26, 28.4], [-24, 27.6], [-21, 29]], lw * 0.55, INK, 0.8);
+      line([[-30, 34.2], [-26, 35.6], [-23, 34.2]], lw * 0.6, INK, 0.8);
+      // flush on the cheek
+      for (let k = 0; k < 4; k++) line([[-24 + k * 3, 12], [-27 + k * 3, 17]], lw * 0.45, INK, 0.55);
+      // a loose strand across the cheek
+      line([[-24, -20], [-31, -6], [-33, 8], [-29, 22]], lw * 0.5, INK, 0.9);
+      ctx.restore();
+    }
+
+    // fingers to the lips
+    if (hand > 0.01) {
+      ctx.save();
+      ctx.globalAlpha = clamp(hand * 1.6);
+      ctx.translate((1 - hand) * -8, (1 - hand) * 80);
+      shape([[-90, 170], [-74, 118], [-54, 112], [-36, 146], [-44, 176]], PAPER_A(0.88), INK, lw);
+      line([[-80, 160], [-62, 124]], lw * 0.5, INK, 0.6);
+      shape([[-64, 122], [-56, 96], [-48, 72], [-42, 62], [-34, 70], [-38, 92], [-46, 120]], PAPER, null, 0);
+      line([[-64, 120], [-55, 92], [-46, 66]], lw * 0.9);
+      line([[-46, 120], [-40, 96], [-35, 72]], lw * 0.9);
+      shape([[-46, 66], [-44, 56], [-41, 52], [-36, 50], [-31, 56], [-30, 66], [-34, 72], [-40, 72]], PAPER, null, 0);
+      // index finger, tip on the lower lip
+      shape([[-42, 58], [-37, 47], [-31, 39], [-28, 34.5], [-25.5, 34.5], [-25.5, 37], [-30, 46], [-35, 58]], PAPER, INK, lw * 0.85);
+      // middle finger, softly bent
+      shape([[-37, 62], [-31, 52], [-25, 45], [-21.5, 42.5], [-19.5, 44.5], [-21.5, 49], [-28, 58], [-32, 66]], PAPER, INK, lw * 0.85);
+      line([[-34, 66], [-28, 63], [-27, 69], [-31, 72]], lw * 0.7);
+      line([[-45, 64], [-49, 54], [-45, 47]], lw * 0.8);
+      ctx.restore();
+    }
+
+    // hair let down, streaming behind her as she walks
+    if (release > 0) {
+      const len = release * 780;
+      for (let k = 0; k < 12; k++) {
+        const pts = [], end = len * (0.7 + 0.3 * hash(k * 7.1));
+        for (let i = 0; i <= 12; i++) {
+          const u = i / 12;
+          pts.push([lerp(18, 18 - end, u), -28 + k * 4.5 + u * u * (50 + k * 9) + Math.sin(u * 6 + t * 7 + k) * 14 * u]);
+        }
+        line(pts, (4 + hash(k * 3.3) * 7) * (1 + walk), INK);
+        if (k % 3 === 0) line(pts.slice(2, 8).map(([x, y]) => [x, y - 1.5]), lw * 0.6, PAPER, 0.8);
+      }
+    }
+    ctx.restore();
+  }
+
+  // ---------- her hair sweeping the whole frame (screen space) ----------
+  const R3 = rng(41);
+  const strands = Array.from({ length: 36 }, (_, i) => ({ y0: -320 + i * 42, w: 84 + R3() * 22, fl: R3() * 200, ft: R3() * 200, ph: R3() * 6, hl: R3() < 0.5 }));
+  const fly = Array.from({ length: 26 }, () => ({ y0: -200 + R3() * 1300, fl: -80 - R3() * 160, ph: R3() * 6, len: 120 + R3() * 260 }));
+  const yAt = (s, x, t) => s.y0 + (x - 800) * 0.22 + 26 * Math.sin(x * 0.006 + s.ph - t * 5) + 10 * Math.sin(x * 0.017 + s.ph * 2);
+  function drawWipe(t) {
+    if (t < 11.2 || t > 13.0) return;
+    const p = (t - 11.2) / 1.8 * 2;
+    const lead = 1600 * (1.3 - 1.8 * p), trail = 1600 * (1.3 - 1.8 * (p - 1));
+    for (const s of strands) {
+      const xa = Math.max(-140, lead + s.fl), xb = Math.min(1740, trail - s.ft);
+      if (xb <= xa) continue;
+      const top = [], bot = [];
+      for (let x = xa; x <= xb + 0.1; x += Math.max(8, (xb - xa) / 60)) {
+        const tp = Math.pow(clamp(Math.min((x - xa) / 160, (xb - x) / 160)), 0.7);
+        const y = yAt(s, x, t), h = s.w / 2 * tp;
+        top.push([x, y - h]); bot.push([x, y + h]);
+      }
+      ctx.beginPath(); ctx.moveTo(top[0][0], top[0][1]);
+      for (const q of top) ctx.lineTo(q[0], q[1]);
+      for (let i = bot.length - 1; i >= 0; i--) ctx.lineTo(bot[i][0], bot[i][1]);
+      ctx.closePath(); ctx.fillStyle = INK; ctx.fill();
+      if (s.hl) {
+        const a = lerp(xa, xb, 0.3), b = lerp(xa, xb, 0.62);
+        ctx.beginPath();
+        for (let x = a; x <= b; x += 16) { const y = yAt(s, x, t) - s.w * 0.12; x === a ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+        ctx.strokeStyle = PAPER_A(0.75); ctx.lineWidth = 1.6; ctx.stroke();
+      }
+    }
+    ctx.strokeStyle = INK; ctx.lineWidth = 1.2; ctx.lineCap = 'round';
+    for (const f of fly) {
+      const x0 = lead + f.fl, x1 = Math.min(x0 + f.len, trail);
+      if (x1 <= x0 || x0 > 1700) continue;
+      ctx.beginPath();
+      for (let x = x0; x <= x1; x += 12) { const y = f.y0 + (x - 800) * 0.22 + 30 * Math.sin(x * 0.012 + f.ph - t * 6); x === x0 ? ctx.moveTo(x, y) : ctx.lineTo(x, y); }
+      ctx.stroke();
+    }
+  }
+
+  // ---------- one continuous camera ----------
+  const KEYS = [[0, 800, 450, 1], [4.8, 778, 405, 1.32], [9.4, 736, 318, 3.45], [11.93, 748, 318, 3.7], [12.15, 800, 450, 1.5], [14.3, 800, 450, 1], [15, 800, 450, 1]];
+  function camAt(t) {
+    for (let i = 0; i < KEYS.length - 1; i++) {
+      const a = KEYS[i], b = KEYS[i + 1];
+      if (t <= b[0]) { const u = ease((t - a[0]) / (b[0] - a[0])); return { x: lerp(a[1], b[1], u), y: lerp(a[2], b[2], u), z: a[3] * Math.pow(b[3] / a[3], u) }; }
+    }
+    return { x: 800, y: 450, z: 1 };
+  }
+
+  function render(t) {
+    const s = cv.width / 1600;
+    const c = camAt(t);
+    const k = s * c.z;
+    boil = Math.floor(t * 12); jc = 0; JAMP = 0.55 / Math.sqrt(c.z);
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.globalAlpha = 1; ctx.globalCompositeOperation = 'source-over';
+    ctx.fillStyle = PAPER; ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.setTransform(k, 0, 0, k, cv.width / 2 - c.x * k, cv.height / 2 - c.y * k);
+    ctx.drawImage(bg, 0, 0, 1600, 900);
+    drawRain(t);
+    if (t < 12.05) drawWoman(t, c.z);
+    const lw = 1.3 / Math.sqrt(c.z);
+    panel(t, 470, 132, 1, billow(t), lw);
+    panel(t, 1130, 122, -1, 0, lw);
+    ctx.setTransform(s, 0, 0, s, 0, 0);
+    drawWipe(t);
+    // grain and a soft vignette
+    ctx.save();
+    ctx.globalAlpha = 0.07;
+    ctx.translate(-hash(boil * 3.7) * 180, -hash(boil * 9.1) * 180);
+    ctx.fillStyle = grainPat; ctx.fillRect(0, 0, 1600 + 180, 900 + 180);
+    ctx.restore();
+    const v = ctx.createRadialGradient(800, 450, 380, 800, 450, 960);
+    v.addColorStop(0, 'rgba(20,20,20,0)'); v.addColorStop(1, 'rgba(20,20,20,0.22)');
+    ctx.fillStyle = v; ctx.fillRect(0, 0, 1600, 900);
+  }
+
+  // ---------- sizing and transport ----------
+  function resize() {
+    const dpr = Math.min(window.devicePixelRatio || 1, 2);
+    const w = Math.max(320, Math.round(cv.clientWidth * dpr));
+    if (cv.width !== w) { cv.width = w; cv.height = Math.round(w * 9 / 16); lastFrame = -1; }
+  }
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  let playing = !reduce, cur = reduce ? 7.9 : 1.0, last = performance.now(), lastFrame = -1;
+  const playBtn = document.getElementById('play'), scrub = document.getElementById('scrub'), tc = document.getElementById('tc');
+  const beats = [...document.querySelectorAll('#beats li')];
+  const fmt = t => { const f = Math.floor(t * FPS); return String(Math.floor(f / FPS)).padStart(2, '0') + ':' + String(f % FPS).padStart(2, '0'); };
+  function syncUI() {
+    playBtn.textContent = playing ? '一時停止' : '再生';
+    scrub.value = cur.toFixed(3);
+    tc.textContent = fmt(cur) + ' / 15:00';
+    for (const li of beats) li.classList.toggle('on', cur >= +li.dataset.a && cur < +li.dataset.b);
+  }
+  playBtn.addEventListener('click', () => { playing = !playing; last = performance.now(); syncUI(); });
+  scrub.addEventListener('input', () => { cur = clamp(+scrub.value, 0, DUR - 0.001); lastFrame = -1; syncUI(); });
+  document.getElementById('fs').addEventListener('click', () => {
+    const el = document.querySelector('.panel');
+    try { const r = el.requestFullscreen && el.requestFullscreen(); if (r && r.catch) r.catch(() => {}); } catch (e) {}
+  });
+  function tick(now) {
+    resize();
+    if (playing) { cur = (cur + (now - last) / 1000) % DUR; }
+    last = now;
+    const f = Math.floor(cur * FPS);
+    if (f !== lastFrame) { lastFrame = f; render(f / FPS); syncUI(); }
+    requestAnimationFrame(tick);
+  }
+  if (window.ResizeObserver) new ResizeObserver(() => { lastFrame = -1; }).observe(cv);
+  resize(); render(cur); syncUI();
+  requestAnimationFrame(tick);
+})();
+</script>
